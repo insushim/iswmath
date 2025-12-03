@@ -18,6 +18,14 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 
+// db null 체크 헬퍼 함수
+function getDb() {
+  if (!db) {
+    throw new Error('Firebase가 초기화되지 않았습니다.');
+  }
+  return db;
+}
+
 // ==================== 학생 관련 ====================
 
 // 학생 진도 저장/업데이트
@@ -33,7 +41,8 @@ export async function saveProgress(
     consecutiveWrong: number;
   }
 ) {
-  const progressRef = doc(db, 'users', userId, 'progress', conceptId);
+  const database = getDb();
+  const progressRef = doc(database, 'users', userId, 'progress', conceptId);
   await setDoc(
     progressRef,
     {
@@ -48,14 +57,16 @@ export async function saveProgress(
 
 // 학생 진도 가져오기
 export async function getProgress(userId: string, conceptId: string) {
-  const progressRef = doc(db, 'users', userId, 'progress', conceptId);
+  const database = getDb();
+  const progressRef = doc(database, 'users', userId, 'progress', conceptId);
   const progressDoc = await getDoc(progressRef);
   return progressDoc.exists() ? progressDoc.data() : null;
 }
 
 // 모든 진도 가져오기
 export async function getAllProgress(userId: string) {
-  const progressRef = collection(db, 'users', userId, 'progress');
+  const database = getDb();
+  const progressRef = collection(database, 'users', userId, 'progress');
   const progressDocs = await getDocs(progressRef);
   return progressDocs.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
@@ -76,7 +87,8 @@ export async function saveProblemAttempt(
     difficulty: number;
   }
 ) {
-  const attemptRef = doc(collection(db, 'users', userId, 'attempts'));
+  const database = getDb();
+  const attemptRef = doc(collection(database, 'users', userId, 'attempts'));
   await setDoc(attemptRef, {
     ...attemptData,
     createdAt: serverTimestamp(),
@@ -86,7 +98,8 @@ export async function saveProblemAttempt(
 
 // 최근 시도 기록 가져오기
 export async function getRecentAttempts(userId: string, limitCount: number = 10) {
-  const attemptsRef = collection(db, 'users', userId, 'attempts');
+  const database = getDb();
+  const attemptsRef = collection(database, 'users', userId, 'attempts');
   const q = query(attemptsRef, orderBy('createdAt', 'desc'), limit(limitCount));
   const attemptDocs = await getDocs(q);
   return attemptDocs.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -96,7 +109,8 @@ export async function getRecentAttempts(userId: string, limitCount: number = 10)
 
 // XP 추가
 export async function addXP(userId: string, amount: number) {
-  const userRef = doc(db, 'users', userId);
+  const database = getDb();
+  const userRef = doc(database, 'users', userId);
   await updateDoc(userRef, {
     totalXP: increment(amount),
     updatedAt: serverTimestamp(),
@@ -105,7 +119,8 @@ export async function addXP(userId: string, amount: number) {
 
 // 코인 추가
 export async function addCoins(userId: string, amount: number) {
-  const userRef = doc(db, 'users', userId);
+  const database = getDb();
+  const userRef = doc(database, 'users', userId);
   await updateDoc(userRef, {
     coins: increment(amount),
     updatedAt: serverTimestamp(),
@@ -114,7 +129,8 @@ export async function addCoins(userId: string, amount: number) {
 
 // 레벨 업데이트
 export async function updateLevel(userId: string, newLevel: number) {
-  const userRef = doc(db, 'users', userId);
+  const database = getDb();
+  const userRef = doc(database, 'users', userId);
   await updateDoc(userRef, {
     currentLevel: newLevel,
     updatedAt: serverTimestamp(),
@@ -127,7 +143,8 @@ export async function updateStreak(
   newStreak: number,
   isNewRecord: boolean
 ) {
-  const userRef = doc(db, 'users', userId);
+  const database = getDb();
+  const userRef = doc(database, 'users', userId);
   const updateData: DocumentData = {
     streak: newStreak,
     lastActiveAt: serverTimestamp(),
@@ -153,7 +170,8 @@ export async function unlockAchievement(
     coinReward?: number;
   }
 ) {
-  const achievementRef = doc(db, 'users', userId, 'achievements', achievementCode);
+  const database = getDb();
+  const achievementRef = doc(database, 'users', userId, 'achievements', achievementCode);
   await setDoc(achievementRef, {
     ...achievementData,
     code: achievementCode,
@@ -163,7 +181,8 @@ export async function unlockAchievement(
 
 // 해금된 업적 가져오기
 export async function getUnlockedAchievements(userId: string) {
-  const achievementsRef = collection(db, 'users', userId, 'achievements');
+  const database = getDb();
+  const achievementsRef = collection(database, 'users', userId, 'achievements');
   const achievementDocs = await getDocs(achievementsRef);
   return achievementDocs.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
@@ -172,11 +191,12 @@ export async function getUnlockedAchievements(userId: string) {
 
 // 오늘의 목표 가져오기/생성
 export async function getTodayGoal(userId: string) {
+  const database = getDb();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const dateStr = today.toISOString().split('T')[0];
 
-  const goalRef = doc(db, 'users', userId, 'dailyGoals', dateStr);
+  const goalRef = doc(database, 'users', userId, 'dailyGoals', dateStr);
   const goalDoc = await getDoc(goalRef);
 
   if (goalDoc.exists()) {
@@ -209,11 +229,12 @@ export async function updateDailyGoal(
     earnedXP?: number;
   }
 ) {
+  const database = getDb();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const dateStr = today.toISOString().split('T')[0];
 
-  const goalRef = doc(db, 'users', userId, 'dailyGoals', dateStr);
+  const goalRef = doc(database, 'users', userId, 'dailyGoals', dateStr);
 
   const incrementUpdates: DocumentData = {};
   if (updates.completedProblems) {
@@ -236,14 +257,16 @@ export async function updateDailyGoal(
 
 // 모든 개념 가져오기
 export async function getAllConcepts() {
-  const conceptsRef = collection(db, 'concepts');
+  const database = getDb();
+  const conceptsRef = collection(database, 'concepts');
   const conceptDocs = await getDocs(conceptsRef);
   return conceptDocs.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
 // 학년별 개념 가져오기
 export async function getConceptsByGrade(gradeLevel: number) {
-  const conceptsRef = collection(db, 'concepts');
+  const database = getDb();
+  const conceptsRef = collection(database, 'concepts');
   const q = query(
     conceptsRef,
     where('gradeLevel', '==', gradeLevel),
@@ -255,7 +278,8 @@ export async function getConceptsByGrade(gradeLevel: number) {
 
 // 특정 개념 가져오기
 export async function getConcept(conceptId: string) {
-  const conceptRef = doc(db, 'concepts', conceptId);
+  const database = getDb();
+  const conceptRef = doc(database, 'concepts', conceptId);
   const conceptDoc = await getDoc(conceptRef);
   return conceptDoc.exists() ? { id: conceptDoc.id, ...conceptDoc.data() } : null;
 }
@@ -264,7 +288,8 @@ export async function getConcept(conceptId: string) {
 
 // 리더보드 가져오기
 export async function getLeaderboard(limitCount: number = 10) {
-  const usersRef = collection(db, 'users');
+  const database = getDb();
+  const usersRef = collection(database, 'users');
   const q = query(
     usersRef,
     where('role', '==', 'student'),
@@ -281,12 +306,13 @@ export async function getLeaderboard(limitCount: number = 10) {
 
 // 사용자 랭킹 가져오기
 export async function getUserRank(userId: string) {
-  const userDoc = await getDoc(doc(db, 'users', userId));
+  const database = getDb();
+  const userDoc = await getDoc(doc(database, 'users', userId));
   if (!userDoc.exists()) return null;
 
   const userXP = userDoc.data().totalXP || 0;
 
-  const usersRef = collection(db, 'users');
+  const usersRef = collection(database, 'users');
   const q = query(
     usersRef,
     where('role', '==', 'student'),
