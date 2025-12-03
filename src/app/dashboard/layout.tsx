@@ -19,6 +19,7 @@ import {
   BarChart3,
   GraduationCap,
   Flame,
+  TrendingUp,
 } from 'lucide-react';
 
 export default function DashboardLayout({
@@ -112,11 +113,11 @@ export default function DashboardLayout({
           {/* 로고 */}
           <div className="flex items-center justify-between p-4 border-b">
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <span className="text-xl font-bold text-white">M</span>
+              <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-teal-500/30">
+                <TrendingUp className="w-6 h-6 text-white" strokeWidth={3} />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                MathQuest
+              <span className="text-xl font-bold bg-gradient-to-r from-teal-600 to-blue-600 bg-clip-text text-transparent">
+                셈오름
               </span>
             </Link>
             <button
@@ -209,10 +210,10 @@ export default function DashboardLayout({
               <Menu className="w-6 h-6" />
             </button>
             <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-lg font-bold text-white">M</span>
+              <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-teal-500/30">
+                <TrendingUp className="w-5 h-5 text-white" strokeWidth={3} />
               </div>
-              <span className="font-bold text-lg">MathQuest</span>
+              <span className="font-bold text-lg bg-gradient-to-r from-teal-600 to-blue-600 bg-clip-text text-transparent">셈오름</span>
             </Link>
             <div className="w-10" /> {/* 균형을 위한 빈 공간 */}
           </div>

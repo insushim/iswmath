@@ -15,9 +15,12 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "MathQuest - AI 기반 맞춤형 수학 학습",
+  title: "셈오름 - AI 기반 맞춤형 수학 학습",
   description: "초등학생부터 고등학생까지, AI가 분석하는 맞춤형 수학 학습 플랫폼",
-  keywords: ["수학", "학습", "AI", "교육", "초등", "중등", "고등", "문제풀이"],
+  keywords: ["수학", "학습", "AI", "교육", "초등", "중등", "고등", "문제풀이", "셈오름"],
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
