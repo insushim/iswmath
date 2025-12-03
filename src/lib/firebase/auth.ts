@@ -50,6 +50,10 @@ export async function signUp(
   gradeLevel?: number,
   schoolType?: SchoolType
 ): Promise<User> {
+  if (!auth || !db) {
+    throw new Error('Firebase가 초기화되지 않았습니다.');
+  }
+
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
@@ -86,6 +90,10 @@ export async function signUp(
 
 // 이메일/비밀번호로 로그인
 export async function signIn(email: string, password: string): Promise<User> {
+  if (!auth || !db) {
+    throw new Error('Firebase가 초기화되지 않았습니다.');
+  }
+
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
@@ -105,6 +113,10 @@ export async function signIn(email: string, password: string): Promise<User> {
 
 // Google 로그인
 export async function signInWithGoogle(): Promise<User> {
+  if (!auth || !db) {
+    throw new Error('Firebase가 초기화되지 않았습니다.');
+  }
+
   try {
     const provider = new GoogleAuthProvider();
     const userCredential = await signInWithPopup(auth, provider);
@@ -149,6 +161,10 @@ export async function signInWithGoogle(): Promise<User> {
 
 // 로그아웃
 export async function signOut(): Promise<void> {
+  if (!auth) {
+    throw new Error('Firebase가 초기화되지 않았습니다.');
+  }
+
   try {
     await firebaseSignOut(auth);
   } catch (error) {
@@ -159,6 +175,10 @@ export async function signOut(): Promise<void> {
 
 // 비밀번호 재설정 이메일 전송
 export async function resetPassword(email: string): Promise<void> {
+  if (!auth) {
+    throw new Error('Firebase가 초기화되지 않았습니다.');
+  }
+
   try {
     await sendPasswordResetEmail(auth, email);
   } catch (error) {
@@ -169,6 +189,10 @@ export async function resetPassword(email: string): Promise<void> {
 
 // 사용자 프로필 가져오기
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+  if (!db) {
+    throw new Error('Firebase가 초기화되지 않았습니다.');
+  }
+
   try {
     const userDoc = await getDoc(doc(db, 'users', uid));
     if (userDoc.exists()) {
@@ -186,6 +210,10 @@ export async function updateUserProfile(
   uid: string,
   data: Partial<UserProfile>
 ): Promise<void> {
+  if (!db) {
+    throw new Error('Firebase가 초기화되지 않았습니다.');
+  }
+
   try {
     await setDoc(
       doc(db, 'users', uid),
@@ -200,10 +228,17 @@ export async function updateUserProfile(
 
 // 인증 상태 변경 리스너
 export function onAuthStateChange(callback: (user: User | null) => void) {
+  if (!auth) {
+    // 서버 사이드에서는 빈 unsubscribe 함수 반환
+    return () => {};
+  }
   return onAuthStateChanged(auth, callback);
 }
 
 // 현재 사용자 가져오기
 export function getCurrentUser(): User | null {
+  if (!auth) {
+    return null;
+  }
   return auth.currentUser;
 }
