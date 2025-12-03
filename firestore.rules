@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 사용자 프로필 - 본인만 읽기/쓰기 가능
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // 하위 컬렉션 (progress, attempts, achievements, dailyGoals)
+      match /{subcollection}/{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // 리더보드용 - 학생 정보 읽기 (이름, XP, 레벨만)
+    match /users/{userId} {
+      allow read: if request.auth != null
+        && resource.data.role == 'student';
+    }
+
+    // 개념 데이터 - 모든 인증된 사용자 읽기 가능
+    match /concepts/{conceptId} {
+      allow read: if request.auth != null;
+      allow write: if false; // 관리자만 수정 가능 (추후 Admin SDK로)
+    }
+
+    // 문제 데이터 - 모든 인증된 사용자 읽기 가능
+    match /problems/{problemId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+  }
+}
