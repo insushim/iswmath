@@ -1,31 +1,25 @@
 // src/lib/firebase/config.ts
-// Firebase 클라이언트 설정 - 환경변수에서 안전하게 로드
+// Firebase 클라이언트 설정
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
-// Firebase 설정 - 환경변수에서 로드 (NEXT_PUBLIC_ 접두사로 클라이언트에서 사용 가능)
+// Firebase 설정
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDMxv9b5oOHfHoG6oha05RPd30lToP0vUE",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "iswmath-de46f.firebaseapp.com",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "iswmath-de46f",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "iswmath-de46f.firebasestorage.app",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "558027510586",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:558027510586:web:4adfe0a110973d4be03603",
 };
 
 // Firebase 앱 초기화 함수 - 클라이언트에서만 실행
 function getFirebaseApp(): FirebaseApp | null {
   // 서버 사이드에서는 초기화하지 않음
   if (typeof window === 'undefined') {
-    return null;
-  }
-
-  // API 키가 없으면 초기화하지 않음
-  if (!firebaseConfig.apiKey) {
-    console.warn('Firebase API key not found');
     return null;
   }
 
