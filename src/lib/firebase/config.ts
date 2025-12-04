@@ -6,14 +6,14 @@ import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
-// Firebase 설정
+// Firebase 설정 - 직접 하드코딩 (환경변수 문제 방지)
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDMxv9b5oOHfHoG6oha05RPd30lToP0vUE",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "iswmath-de46f.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "iswmath-de46f",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "iswmath-de46f.firebasestorage.app",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "558027510586",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:558027510586:web:4adfe0a110973d4be03603",
+  apiKey: "AIzaSyDMxv9b5oOHfHoG6oha05RPd30lToP0vUE",
+  authDomain: "iswmath-de46f.firebaseapp.com",
+  projectId: "iswmath-de46f",
+  storageBucket: "iswmath-de46f.firebasestorage.app",
+  messagingSenderId: "558027510586",
+  appId: "1:558027510586:web:4adfe0a110973d4be03603",
 };
 
 // Firebase 앱 초기화 함수 - 클라이언트에서만 실행
@@ -23,11 +23,16 @@ function getFirebaseApp(): FirebaseApp | null {
     return null;
   }
 
-  // 싱글톤 패턴
-  if (getApps().length === 0) {
-    return initializeApp(firebaseConfig);
+  try {
+    // 싱글톤 패턴
+    if (getApps().length === 0) {
+      return initializeApp(firebaseConfig);
+    }
+    return getApp();
+  } catch (error) {
+    console.error('Firebase 초기화 오류:', error);
+    return null;
   }
-  return getApp();
 }
 
 // Firebase 앱 (클라이언트에서만 유효)

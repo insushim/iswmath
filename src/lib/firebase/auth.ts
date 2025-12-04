@@ -16,7 +16,7 @@ import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './config';
 
 // 사용자 역할 타입
-export type UserRole = 'student' | 'teacher' | 'parent';
+export type UserRole = 'student' | 'teacher' | 'parent' | 'admin';
 
 // 학교 유형
 export type SchoolType = 'elementary' | 'middle' | 'high';
@@ -229,7 +229,9 @@ export async function updateUserProfile(
 // 인증 상태 변경 리스너
 export function onAuthStateChange(callback: (user: User | null) => void) {
   if (!auth) {
-    // 서버 사이드에서는 빈 unsubscribe 함수 반환
+    // auth가 없으면 (서버 사이드 또는 초기화 실패) 즉시 null로 콜백 호출
+    // setTimeout으로 다음 틱에 실행하여 useEffect 내에서 안전하게 동작
+    setTimeout(() => callback(null), 0);
     return () => {};
   }
   return onAuthStateChanged(auth, callback);
