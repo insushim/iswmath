@@ -1,19 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import {
   BookOpen,
   Target,
   Trophy,
   Flame,
   Zap,
-  Star,
-  TrendingUp,
   Clock,
   CheckCircle2,
   ArrowRight,
@@ -25,62 +22,12 @@ import {
   BarChart3,
   Coins,
   GraduationCap,
-  Rocket,
   Medal,
   Crown,
-  Heart,
-  Gift,
   Users,
   ChevronRight,
 } from 'lucide-react';
-
-// 추천 학습 콘텐츠
-const recommendedConcepts = [
-  {
-    id: 'addition-basic',
-    title: '덧셈의 기초',
-    description: '한 자리 수의 덧셈을 배워요',
-    difficulty: '초급',
-    duration: '10분',
-    xp: 50,
-    color: 'from-blue-500 to-cyan-500',
-    icon: '➕',
-    progress: 0,
-  },
-  {
-    id: 'subtraction-basic',
-    title: '뺄셈의 기초',
-    description: '한 자리 수의 뺄셈을 배워요',
-    difficulty: '초급',
-    duration: '10분',
-    xp: 50,
-    color: 'from-purple-500 to-pink-500',
-    icon: '➖',
-    progress: 0,
-  },
-  {
-    id: 'multiplication-intro',
-    title: '곱셈 입문',
-    description: '구구단의 원리를 알아봐요',
-    difficulty: '중급',
-    duration: '15분',
-    xp: 75,
-    color: 'from-orange-500 to-red-500',
-    icon: '✖️',
-    progress: 0,
-  },
-  {
-    id: 'division-intro',
-    title: '나눗셈 입문',
-    description: '똑같이 나누는 방법을 배워요',
-    difficulty: '중급',
-    duration: '15분',
-    xp: 75,
-    color: 'from-green-500 to-emerald-500',
-    icon: '➗',
-    progress: 0,
-  },
-];
+import { CURRICULUM_DATA, getRecommendedContent, getTotalConceptCount } from '@/lib/curriculum-data';
 
 // 업적 목록
 const achievements = [
@@ -97,11 +44,53 @@ const dailyMissions = [
   { id: 3, title: '개념 1개 완료', current: 0, target: 1, xp: 50, completed: false },
 ];
 
+// 난이도 색상
+const difficultyColors: Record<string, { bg: string; text: string; gradient: string }> = {
+  '기초': { bg: 'bg-green-100', text: 'text-green-700', gradient: 'from-green-500 to-emerald-500' },
+  '초급': { bg: 'bg-blue-100', text: 'text-blue-700', gradient: 'from-blue-500 to-cyan-500' },
+  '중급': { bg: 'bg-yellow-100', text: 'text-yellow-700', gradient: 'from-yellow-500 to-orange-500' },
+  '고급': { bg: 'bg-orange-100', text: 'text-orange-700', gradient: 'from-orange-500 to-red-500' },
+  '심화': { bg: 'bg-red-100', text: 'text-red-700', gradient: 'from-red-500 to-pink-500' },
+  '최상': { bg: 'bg-purple-100', text: 'text-purple-700', gradient: 'from-purple-500 to-indigo-500' },
+};
+
 export default function DashboardPage() {
-  const { profile, user } = useAuth();
+  const { profile } = useAuth();
   const router = useRouter();
   const [greeting, setGreeting] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // 사용자 학년에 맞는 학교급 결정
+  const userSchoolType = useMemo(() => {
+    if (profile?.schoolType) return profile.schoolType;
+    if (profile?.gradeLevel) {
+      if (profile.gradeLevel <= 6) return 'elementary';
+      if (profile.gradeLevel <= 9) return 'middle';
+      return 'high';
+    }
+    return 'elementary';
+  }, [profile?.schoolType, profile?.gradeLevel]);
+
+  // 사용자 학년 (학교급 내 학년)
+  const userGrade = useMemo(() => {
+    if (!profile?.gradeLevel) return 1;
+    if (profile.gradeLevel <= 6) return profile.gradeLevel;
+    if (profile.gradeLevel <= 9) return profile.gradeLevel - 6;
+    return profile.gradeLevel - 9;
+  }, [profile?.gradeLevel]);
+
+  // 학년에 맞는 추천 콘텐츠
+  const recommendedConcepts = useMemo(() => {
+    return getRecommendedContent(userSchoolType, userGrade, 4);
+  }, [userSchoolType, userGrade]);
+
+  // 전체 개념 수
+  const totalConcepts = useMemo(() => {
+    return getTotalConceptCount(userSchoolType, userGrade);
+  }, [userSchoolType, userGrade]);
+
+  // 학교급 정보
+  const schoolInfo = CURRICULUM_DATA[userSchoolType];
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -369,12 +358,16 @@ export default function DashboardPage() {
           >
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200">
+                <div className={`w-12 h-12 bg-gradient-to-br ${schoolInfo?.color || 'from-blue-500 to-indigo-600'} rounded-2xl flex items-center justify-center shadow-lg`}>
                   <Sparkles className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-800">추천 학습</h2>
-                  <p className="text-sm text-slate-500">AI가 추천하는 맞춤 학습 콘텐츠</p>
+                  <h2 className="text-xl font-bold text-slate-800">
+                    {schoolInfo?.label || '초등학교'} {userGrade}학년 맞춤 학습
+                  </h2>
+                  <p className="text-sm text-slate-500">
+                    {totalConcepts}개의 개념 중 AI가 추천하는 콘텐츠
+                  </p>
                 </div>
               </div>
               <Button
@@ -388,62 +381,63 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {recommendedConcepts.map((concept, index) => (
-                <motion.div
-                  key={concept.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.4 + index * 0.1 }}
-                  whileHover={{ scale: 1.02, y: -4 }}
-                  onClick={() => router.push(`/dashboard/learn/${concept.id}`)}
-                  className="group cursor-pointer relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 p-5 border border-slate-200 hover:border-indigo-300 hover:shadow-lg transition-all"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${concept.color} flex items-center justify-center text-2xl shadow-lg`}>
-                      {concept.icon}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          concept.difficulty === '초급'
-                            ? 'bg-green-100 text-green-700'
-                            : concept.difficulty === '중급'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}>
-                          {concept.difficulty}
-                        </span>
-                        <span className="text-xs text-slate-400">{concept.duration}</span>
+              {recommendedConcepts.length > 0 ? recommendedConcepts.map((concept, index) => {
+                const colors = difficultyColors[concept.difficulty] || difficultyColors['초급'];
+                return (
+                  <motion.div
+                    key={concept.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.4 + index * 0.1 }}
+                    whileHover={{ scale: 1.02, y: -4 }}
+                    onClick={() => router.push(`/dashboard/learn/${concept.id}`)}
+                    className="group cursor-pointer relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 p-5 border border-slate-200 hover:border-indigo-300 hover:shadow-lg transition-all"
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${colors.gradient} flex items-center justify-center text-2xl shadow-lg`}>
+                        📘
                       </div>
-                      <h3 className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
-                        {concept.title}
-                      </h3>
-                      <p className="text-sm text-slate-500 mt-1">{concept.description}</p>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${colors.bg} ${colors.text}`}>
+                            {concept.difficulty}
+                          </span>
+                          <span className="text-xs text-slate-400">{concept.duration}</span>
+                        </div>
+                        <h3 className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                          {concept.name}
+                        </h3>
+                        <p className="text-sm text-slate-500 mt-1 line-clamp-1">{concept.description}</p>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200">
-                    <div className="flex items-center gap-1 text-amber-600 font-medium text-sm">
-                      <Zap className="w-4 h-4" />
-                      +{concept.xp} XP
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200">
+                      <div className="flex items-center gap-1 text-amber-600 font-medium text-sm">
+                        <Zap className="w-4 h-4" />
+                        +{concept.xp} XP
+                      </div>
+                      <div className="flex items-center gap-2 text-indigo-600 font-medium text-sm group-hover:translate-x-1 transition-transform">
+                        시작하기
+                        <ArrowRight className="w-4 h-4" />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-indigo-600 font-medium text-sm group-hover:translate-x-1 transition-transform">
-                      시작하기
-                      <ArrowRight className="w-4 h-4" />
-                    </div>
-                  </div>
 
-                  {/* 진행률 표시 */}
-                  {concept.progress > 0 && (
-                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-200">
-                      <div
-                        className={`h-full bg-gradient-to-r ${concept.color}`}
-                        style={{ width: `${concept.progress}%` }}
-                      />
+                    {/* 단원 정보 */}
+                    <div className="absolute top-3 right-3">
+                      <span className="text-xs text-slate-400 bg-white/80 px-2 py-1 rounded-full">
+                        {concept.unitName}
+                      </span>
                     </div>
-                  )}
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              }) : (
+                // 데이터가 없을 경우 기본 콘텐츠
+                <div className="col-span-2 text-center py-8 text-slate-500">
+                  <BookOpen className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+                  <p>학습 콘텐츠를 준비 중입니다.</p>
+                  <p className="text-sm">곧 {schoolInfo?.label} {userGrade}학년 맞춤 콘텐츠가 제공됩니다!</p>
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -593,7 +587,7 @@ export default function DashboardPage() {
               color: 'from-orange-500 to-red-600',
               href: '/dashboard/leaderboard'
             },
-          ].map((action, index) => (
+          ].map((action) => (
             <motion.div
               key={action.title}
               whileHover={{ scale: 1.05, y: -4 }}
@@ -619,7 +613,6 @@ export default function DashboardPage() {
 // 학부모 대시보드
 function ParentDashboard() {
   const { profile } = useAuth();
-  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
@@ -700,7 +693,6 @@ function ParentDashboard() {
 // 선생님 대시보드
 function TeacherDashboard() {
   const { profile } = useAuth();
-  const router = useRouter();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">

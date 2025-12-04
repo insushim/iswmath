@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users,
@@ -9,14 +9,14 @@ import {
   Edit2,
   Trash2,
   X,
-  ChevronLeft,
-  ChevronRight,
   GraduationCap,
   BookOpen,
   Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 
 interface User {
   id: string;
@@ -28,25 +28,12 @@ interface User {
   totalXP: number;
   currentLevel: number;
   coins: number;
-  createdAt: string;
-  lastActiveAt: string;
-}
-
-interface Pagination {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
+  createdAt: Date | null;
+  lastActiveAt: Date | null;
 }
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-  });
   const [loading, setLoading] = useState(true);
   const [roleFilter, setRoleFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,41 +42,54 @@ export default function AdminUsersPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-        role: roleFilter,
-      });
-      const response = await fetch(`/api/admin/users?${params}`);
-      const data = await response.json();
-      setUsers(data.users);
-      setPagination(data.pagination);
-    } catch (error) {
-      console.error('사용자 조회 실패:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [pagination.page, pagination.limit, roleFilter]);
-
   useEffect(() => {
+    async function fetchUsers() {
+      if (!db) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const usersRef = collection(db, 'users');
+        const snapshot = await getDocs(usersRef);
+
+        const userList: User[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          userList.push({
+            id: docSnap.id,
+            name: data.name || '이름 없음',
+            email: data.email || '',
+            role: data.role || 'student',
+            gradeLevel: data.gradeLevel,
+            schoolType: data.schoolType,
+            totalXP: data.totalXP || 0,
+            currentLevel: data.currentLevel || 1,
+            coins: data.coins || 0,
+            createdAt: data.createdAt?.toDate?.() || null,
+            lastActiveAt: data.lastActiveAt?.toDate?.() || null,
+          });
+        });
+
+        setUsers(userList);
+      } catch (error) {
+        console.error('사용자 조회 실패:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
     fetchUsers();
-  }, [fetchUsers]);
+  }, []);
 
   const handleDeleteUser = async () => {
-    if (!selectedUser) return;
+    if (!selectedUser || !db) return;
     setActionLoading(true);
     try {
-      await fetch('/api/admin/users', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: selectedUser.id }),
-      });
+      await deleteDoc(doc(db, 'users', selectedUser.id));
+      setUsers(users.filter(u => u.id !== selectedUser.id));
       setShowDeleteModal(false);
       setSelectedUser(null);
-      fetchUsers();
     } catch (error) {
       console.error('사용자 삭제 실패:', error);
     } finally {
@@ -98,17 +98,16 @@ export default function AdminUsersPage() {
   };
 
   const handleUpdateUser = async (data: Partial<User>) => {
-    if (!selectedUser) return;
+    if (!selectedUser || !db) return;
     setActionLoading(true);
     try {
-      await fetch('/api/admin/users', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: selectedUser.id, data }),
+      await updateDoc(doc(db, 'users', selectedUser.id), {
+        ...data,
+        updatedAt: new Date(),
       });
+      setUsers(users.map(u => u.id === selectedUser.id ? { ...u, ...data } : u));
       setShowEditModal(false);
       setSelectedUser(null);
-      fetchUsers();
     } catch (error) {
       console.error('사용자 수정 실패:', error);
     } finally {
@@ -147,9 +146,8 @@ export default function AdminUsersPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '-';
-    const date = new Date(dateString);
+  const formatDate = (date: Date | null) => {
+    if (!date) return '-';
     return date.toLocaleDateString('ko-KR', {
       year: 'numeric',
       month: 'short',
@@ -173,10 +171,12 @@ export default function AdminUsersPage() {
     return `${school}${grade}학년`;
   };
 
-  const filteredUsers = users.filter(user =>
-    user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users
+    .filter(user => roleFilter === 'all' || user.role === roleFilter)
+    .filter(user =>
+      user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
   return (
     <div className="space-y-6">
@@ -185,7 +185,7 @@ export default function AdminUsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">사용자 관리</h1>
           <p className="text-slate-400 text-sm mt-1">
-            전체 {pagination.total}명의 사용자
+            전체 {users.length}명의 사용자
           </p>
         </div>
       </div>
@@ -205,10 +205,7 @@ export default function AdminUsersPage() {
           <Filter size={20} className="text-slate-400" />
           <select
             value={roleFilter}
-            onChange={(e) => {
-              setRoleFilter(e.target.value);
-              setPagination(prev => ({ ...prev, page: 1 }));
-            }}
+            onChange={(e) => setRoleFilter(e.target.value)}
             className="bg-slate-800 border border-slate-700 text-white rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
           >
             <option value="all">전체</option>
@@ -309,39 +306,6 @@ export default function AdminUsersPage() {
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-700">
-            <p className="text-slate-400 text-sm">
-              {pagination.total}명 중 {(pagination.page - 1) * pagination.limit + 1} -{' '}
-              {Math.min(pagination.page * pagination.limit, pagination.total)}
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                disabled={pagination.page === 1}
-                className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-              >
-                <ChevronLeft size={16} />
-              </Button>
-              <span className="text-slate-300 px-4">
-                {pagination.page} / {pagination.totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                disabled={pagination.page === pagination.totalPages}
-                className="bg-slate-700 border-slate-600 text-white hover:bg-slate-600"
-              >
-                <ChevronRight size={16} />
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Edit Modal */}

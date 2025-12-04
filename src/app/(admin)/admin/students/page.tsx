@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   GraduationCap,
@@ -11,6 +11,8 @@ import {
   Flame,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 
 interface Student {
   id: string;
@@ -22,8 +24,8 @@ interface Student {
   currentLevel: number;
   coins: number;
   streak: number;
-  createdAt: string;
-  lastActiveAt: string;
+  createdAt: Date | null;
+  lastActiveAt: Date | null;
 }
 
 export default function AdminStudentsPage() {
@@ -31,22 +33,46 @@ export default function AdminStudentsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchStudents = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/admin/users?role=student&limit=100');
-      const data = await response.json();
-      setStudents(data.users);
-    } catch (error) {
-      console.error('학생 조회 실패:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
+    async function fetchStudents() {
+      if (!db) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('role', '==', 'student'));
+        const snapshot = await getDocs(q);
+
+        const studentList: Student[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          studentList.push({
+            id: doc.id,
+            name: data.name || '이름 없음',
+            email: data.email || '',
+            gradeLevel: data.gradeLevel,
+            schoolType: data.schoolType,
+            totalXP: data.totalXP || 0,
+            currentLevel: data.currentLevel || 1,
+            coins: data.coins || 0,
+            streak: data.streak || 0,
+            createdAt: data.createdAt?.toDate?.() || null,
+            lastActiveAt: data.lastActiveAt?.toDate?.() || null,
+          });
+        });
+
+        setStudents(studentList);
+      } catch (error) {
+        console.error('학생 조회 실패:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
     fetchStudents();
-  }, [fetchStudents]);
+  }, []);
 
   const getGradeLabel = (student: Student) => {
     if (!student.gradeLevel) return '-';

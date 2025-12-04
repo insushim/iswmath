@@ -157,14 +157,11 @@ export default function AdminLayout({
             </button>
             <div className="flex items-center gap-2">
               <Shield size={20} className="text-teal-400" />
-              <span className="text-slate-300 font-medium">관리자 모드</span>
+              <span className="text-slate-300 font-medium">슈퍼 관리자 모드</span>
             </div>
-            <Link
-              href="/dashboard"
-              className="text-sm text-slate-400 hover:text-teal-400 transition-colors"
-            >
-              일반 대시보드로 →
-            </Link>
+            <div className="text-sm text-teal-400 font-medium">
+              셈오름 관리 시스템
+            </div>
           </div>
         </header>
 

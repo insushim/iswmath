@@ -1,16 +1,18 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Search, Mail, Calendar } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase/config';
 
 interface Parent {
   id: string;
   name: string;
   email: string;
-  createdAt: string;
-  lastActiveAt: string;
+  createdAt: Date | null;
+  lastActiveAt: Date | null;
 }
 
 export default function AdminParentsPage() {
@@ -18,26 +20,44 @@ export default function AdminParentsPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchParents = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch('/api/admin/users?role=parent&limit=100');
-      const data = await response.json();
-      setParents(data.users);
-    } catch (error) {
-      console.error('학부모 조회 실패:', error);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    async function fetchParents() {
+      if (!db) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('role', '==', 'parent'));
+        const snapshot = await getDocs(q);
+
+        const parentList: Parent[] = [];
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          parentList.push({
+            id: doc.id,
+            name: data.name || '이름 없음',
+            email: data.email || '',
+            createdAt: data.createdAt?.toDate?.() || null,
+            lastActiveAt: data.lastActiveAt?.toDate?.() || null,
+          });
+        });
+
+        setParents(parentList);
+      } catch (error) {
+        console.error('학부모 조회 실패:', error);
+      } finally {
+        setLoading(false);
+      }
     }
+
+    fetchParents();
   }, []);
 
-  useEffect(() => {
-    fetchParents();
-  }, [fetchParents]);
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('ko-KR');
+  const formatDate = (date: Date | null) => {
+    if (!date) return '-';
+    return date.toLocaleDateString('ko-KR');
   };
 
   const filteredParents = parents.filter(parent =>

@@ -19,12 +19,8 @@ import {
   Clock,
   ArrowRight,
   Sparkles,
-  Star,
-  Award,
-  TrendingUp,
   Play,
   Pause,
-  RotateCcw,
   ChevronRight,
 } from 'lucide-react';
 
@@ -115,7 +111,8 @@ const CONCEPT_DATA: Record<string, { name: string; icon: string; color: string }
 };
 
 export default function PracticePage() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter();
   const [selectedConcept, setSelectedConcept] = useState<string>('');
   const [currentProblem, setCurrentProblem] = useState<{
